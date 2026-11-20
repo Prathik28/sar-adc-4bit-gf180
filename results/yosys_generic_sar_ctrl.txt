@@ -1,0 +1,24 @@
+
+4. Printing statistics.
+
+=== sar_ctrl ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       52 wires
+       69 wire bits
+       11 public wires
+       28 public wire bits
+        8 ports
+       14 port bits
+       59 cells
+        1   $_ANDNOT_
+       10   $_AND_
+        6   $_DFF_P_
+       15   $_NAND_
+        9   $_NOR_
+        4   $_NOT_
+        2   $_ORNOT_
+        4   $_OR_
+        8   $_SDFFE_PP0P_
+
