@@ -5,7 +5,7 @@ Each seed gets its own random threshold shifts (delvto = mis_vth * sw_stat_misma
 per device).  The differential input is stepped from -DV to +DV in 1 mV steps, one evaluation per
 20 ns clock; the offset is where the buffered SR-latch output flips.  Corner: typical, 27 C, VDD 2 V.
 
-usage: mc_comparator.py [N_seeds=200] [-j 4]
+usage: mc_comparator.py [N_seeds=200] [-j 4] [--corner typical|ff|ss|fs|sf]
 """
 import subprocess, sys, os, pathlib, json
 import numpy as np
@@ -14,6 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MODELS = os.environ.get("GF180_MODELS", str(ROOT.parent / "tools/globalfoundries-pdk-libs-gf180mcu_fd_pr/models/ngspice"))
 W = ROOT / "build/spice/mc_cmp"; W.mkdir(parents=True, exist_ok=True)
+CORNER = sys.argv[sys.argv.index("--corner") + 1] if "--corner" in sys.argv else "typical"
+TAG = "" if CORNER == "typical" else f"_{CORNER}"
 DV = 0.060; STEP = 0.001; P = 20.0  # volts, volts, ns
 steps = np.round(np.arange(-DV, DV + STEP / 2, STEP), 6)
 
@@ -25,7 +27,7 @@ def netlist(seed, data):
             pts += [f"{t + 1}n {1 + steps[k - 1]}", f"{t + 1.5}n {1 + dv}"]
     return f"""* comparator offset Monte Carlo, seed {seed}
 .include {MODELS}/design.ngspice
-.lib {MODELS}/sm141064.ngspice typical
+.lib {MODELS}/sm141064.ngspice {CORNER}
 .param sw_stat_global=0 sw_stat_mismatch=1
 .option seed={seed}
 .include {ROOT}/spice/cells.sp
@@ -56,7 +58,7 @@ wrdata {data} v(clkc) v(comp)
 """
 
 def one(seed):
-    sp, dat = W / f"s{seed}.sp", W / f"s{seed}.txt"
+    sp, dat = W / f"{CORNER}_s{seed}.sp", W / f"{CORNER}_s{seed}.txt"
     sp.write_text(netlist(seed, dat))
     subprocess.run(["ngspice", "-b", str(sp)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     a = np.loadtxt(dat); t, comp = a[:, 0], a[:, 3]
@@ -71,9 +73,9 @@ if __name__ == "__main__":
     j = int(sys.argv[sys.argv.index("-j") + 1]) if "-j" in sys.argv else 4
     with ThreadPoolExecutor(j) as ex: res = list(ex.map(one, range(1, n + 1)))
     off = np.array([r[1] for r in res]); ok = ~np.isnan(off)
-    out = {"n": n, "valid": int(ok.sum()), "mean_mV": 1e3 * off[ok].mean(), "sigma_mV": 1e3 * off[ok].std(ddof=1),
+    out = {"corner": CORNER, "n": n, "valid": int(ok.sum()), "mean_mV": 1e3 * off[ok].mean(), "sigma_mV": 1e3 * off[ok].std(ddof=1),
            "min_mV": 1e3 * off[ok].min(), "max_mV": 1e3 * off[ok].max(), "step_mV": 1e3 * STEP,
            "bad_seeds": [r[0] for r in res if np.isnan(r[1])]}
     print(json.dumps(out, indent=1))
     (ROOT / "results").mkdir(exist_ok=True)
-    (ROOT / "results/mc_comparator_offset.json").write_text(json.dumps(out | {"offsets_V": [None if np.isnan(x) else x for x in off]}, indent=1))
+    (ROOT / f"results/mc_comparator_offset{TAG}.json").write_text(json.dumps(out | {"offsets_V": [None if np.isnan(x) else x for x in off]}, indent=1))

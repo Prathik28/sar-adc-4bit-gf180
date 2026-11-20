@@ -1,0 +1,78 @@
+{
+ "loaded_20fF": {
+  "setb3": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00298257323,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "setb2": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00366727226,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "setb1": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.754353836,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "setb0": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.004303435,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "eoc": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00284881038,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "eoc_r": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.0106768058,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  }
+ },
+ "unloaded_10Mohm_as_in_report": {
+  "setb3": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00490210248,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "setb2": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00572922075,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "setb1": {
+   "spurious_pulses": 3,
+   "peak_dev_V": 2.14710509,
+   "max_pulse_ps": 139.99999999999994,
+   "cycles_checked": 18
+  },
+  "setb0": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00702398258,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "eoc": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.00476598242,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  },
+  "eoc_r": {
+   "spurious_pulses": 0,
+   "peak_dev_V": 0.0177757279,
+   "max_pulse_ps": 0.0,
+   "cycles_checked": 18
+  }
+ }
+}

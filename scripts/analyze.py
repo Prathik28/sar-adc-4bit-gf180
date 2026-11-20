@@ -39,11 +39,11 @@ def do_ramp():
     print(json.dumps(m, indent=1)); (RES / "ramp128_typical.json").write_text(json.dumps(m | {"codes": codes.tolist(), "vin": vin.tolist(), "T": T.tolist()}, indent=1))
 
 
-def do_fine():
+def do_fine(prefix="fine", out="ramp256_typical.json"):
     """256-step ramp (4 chunks of 64, 1/16 LSB per step): transition voltages, DNL and INL."""
     vin_all, codes_all = [], []
     for i in range(4):
-        t, s = L.load(BUILD / f"runs/fine_q{i}.txt")
+        t, s = L.load(BUILD / f"runs/{prefix}_q{i}.txt")
         for _, c, v in L.conversions(t, s):
             codes_all.append(c); vin_all.append(v)
     vin = np.array(vin_all); codes = np.array(codes_all); lsb = 0.125
@@ -60,7 +60,47 @@ def do_fine():
          "dnl_max_abs": float(np.abs(dnl).max()), "inl_vs_ideal_max_abs": float(np.abs(inl_abs).max()),
          "inl_best_fit_max_abs": float(np.abs(inl_fit).max()),
          "offset_lsb_first_transition": float(inl_abs[0]), "gain_error_lsb_last_transition": float(inl_abs[-1])}
-    print({k: v for k, v in m.items() if not isinstance(v, list)}); (RES / "ramp256_typical.json").write_text(json.dumps(m, indent=1))
+    print({k: v for k, v in m.items() if not isinstance(v, list)}); (RES / out).write_text(json.dumps(m, indent=1))
+
+
+def do_mim():
+    print("MIM caps, typical 27 C, 2 V, 256-step ramp"); do_fine("mimfine", "ramp256_typical_mim.json")
+    rows = []
+    for name, vdd in (("mim_ss_125_1.8", 1.8), ("mim_ff_m40_2.2", 2.2)):
+        m, *_ = ramp_metrics(BUILD / f"runs/{name}.txt", vdd, 64); rows.append({"run": name, **m}); print(name, m)
+    (RES / "pvt_ramp64_mim.json").write_text(json.dumps(rows, indent=1))
+
+
+def do_noise():
+    cycles, n = 13, 128
+    rng = np.random.default_rng(1); k = np.arange(n); rows = []
+    for s in (0.1, 0.5, 2, 5, 10, 20):
+        f = BUILD / f"runs/noise_{s}.txt"
+        if not f.exists(): continue
+        t, sg = L.load(f); codes = np.array([c for _, c, _ in L.conversions(t, sg)])[:n].astype(float)
+        sn, en, sf, _ = sndr(codes, cycles)
+        # same noise on an ideal 4-bit quantiser (no other error), averaged over 300 noise draws and phases
+        ideal = []
+        for _ in range(300):
+            v = 1.0 + 0.98 * np.sin(2 * np.pi * cycles * k / n + rng.uniform(0, 6.283)) + rng.normal(0, s * 1e-3, n)
+            ideal.append(sndr(np.clip(np.floor(v / 0.125), 0, 15), cycles)[:2])
+        ideal = np.array(ideal)
+        rows.append({"noise_mV_rms": s, "noise_lsb_rms": s * 1e-3 / 0.125, "SNDR_dB": float(sn), "ENOB": float(en), "SFDR_dB": float(sf),
+                     "ideal_quantiser_with_same_noise_SNDR_dB": float(ideal[:, 0].mean()), "ideal_quantiser_ENOB": float(ideal[:, 1].mean())})
+    kT_C = (1.380649e-23 * 300.15 / (16 * 25e-15)) ** 0.5
+    out = {"kTC_rms_mV_for_400fF": kT_C * 1e3, "rows": rows}
+    print(json.dumps(out, indent=1)); (RES / "noise_sensitivity.json").write_text(json.dumps(out, indent=1))
+
+
+def do_mm():
+    rows = []
+    for f in sorted((BUILD / "runs").glob("mm_*.txt")):
+        _, corner, seed = f.stem.split("_")
+        m, *_ = ramp_metrics(f, 2.0, 64); rows.append({"corner": corner, "seed": int(seed), **m})
+    (RES / "mismatch_converter_ramp64.json").write_text(json.dumps(rows, indent=1))
+    md = ["| corner | seed | codes seen | monotonic | steps with code error | max code error (LSB) |", "|---|---|---|---|---|---|"]
+    for r in rows: md.append(f"| {r['corner']} | {r['seed']} | {r['codes_seen']}/16 | {'yes' if r['monotonic'] else 'NO'} | {r['steps_with_code_error']} | {r['max_abs_code_error_lsb']} |")
+    (RES / "mismatch_converter_ramp64.md").write_text("\n".join(md) + "\n"); print("\n".join(md))
 
 
 def do_pvt():
@@ -135,4 +175,4 @@ def do_plots():
 
 
 if __name__ == "__main__":
-    {"fine": do_fine, "ramp": do_ramp, "pvt": do_pvt, "enob": do_enob, "plots": do_plots}[sys.argv[1]]()
+    {"mim": do_mim, "noise": do_noise, "mm": do_mm, "fine": do_fine, "ramp": do_ramp, "pvt": do_pvt, "enob": do_enob, "plots": do_plots}[sys.argv[1]]()
