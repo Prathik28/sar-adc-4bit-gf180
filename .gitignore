@@ -1,0 +1,7 @@
+build/
+*.vcd
+*.vvp
+.DS_Store
+spice/*.txt
+spice/*.raw
+__pycache__/
