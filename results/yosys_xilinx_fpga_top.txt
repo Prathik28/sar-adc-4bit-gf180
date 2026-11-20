@@ -1,0 +1,71 @@
+
+4. Printing statistics.
+
+=== fpga_top ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       47 wires
+       70 wire bits
+       11 public wires
+       29 public wire bits
+        7 ports
+       13 port bits
+       32 cells
+        1   BUFG
+        3   CARRY4
+       12   FDRE
+        3   IBUF
+        1   INV
+        1   LUT4
+        1   LUT6
+       10   OBUF
+        1 submodules
+        1   sar_ctrl
+
+=== sar_ctrl ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       22 wires
+       39 wire bits
+       11 public wires
+       28 public wire bits
+        8 ports
+       14 port bits
+       29 cells
+       14   FDRE
+        5   LUT2
+       10   LUT4
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+       61 fpga_top
+       29 sar_ctrl
+
+        +----------Count including submodules.
+        | 
+       69 wires
+      109 wire bits
+       22 public wires
+       57 public wire bits
+       15 ports
+       27 port bits
+        - memories
+        - memory bits
+        - processes
+       61 cells
+        1   BUFG
+        3   CARRY4
+       26   FDRE
+        3   IBUF
+        1   INV
+        5   LUT2
+       11   LUT4
+        1   LUT6
+       10   OBUF
+        1 submodules
+        1   sar_ctrl
+
