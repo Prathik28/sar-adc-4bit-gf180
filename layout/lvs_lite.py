@@ -9,7 +9,7 @@ def extract(ly, cell):
     l2n = db.LayoutToNetlist(db.RecursiveShapeIterator(ly, cell, []))
     mk = lambda l, d: l2n.make_layer(ly.layer(l, d))
     nwell, comp, poly, pplus, nplus, co, m1 = mk(21, 0), mk(22, 0), mk(30, 0), mk(31, 0), mk(32, 0), mk(33, 0), mk(34, 0)
-    v1, m2 = mk(35, 0), mk(36, 0)
+    v1, m2, v2, m3, v3, m4 = mk(35, 0), mk(36, 0), mk(38, 0), mk(42, 0), mk(40, 0), mk(46, 0)
     ngate = poly & (comp & nplus)
     pgate = poly & (comp & pplus)
     nsd = (comp & nplus) - poly
@@ -25,9 +25,9 @@ def extract(ly, cell):
     l2n.extract_devices(db.DeviceExtractorMOS4Transistor("PMOS"), {"SD": pmos_sd, "G": pgate, "W": nwell, "P": poly})
     # connectivity
     for a, b in [(nmos_sd, co), (pmos_sd, co), (ptap, co), (ntap, co), (poly, co), (co, m1),
-                 (sub, ptap), (nwell, ntap), (m1, v1), (v1, m2)]:
+                 (sub, ptap), (nwell, ntap), (m1, v1), (v1, m2), (m2, v2), (v2, m3), (m3, v3), (v3, m4)]:
         l2n.connect(a, b)
-    for a in (nmos_sd, pmos_sd, ptap, ntap, poly, co, m1, sub, nwell, v1, m2):
+    for a in (nmos_sd, pmos_sd, ptap, ntap, poly, co, m1, sub, nwell, v1, m2, v2, m3, v3, m4):
         l2n.connect(a)
     l2n.extract_netlist()
     return l2n, m1

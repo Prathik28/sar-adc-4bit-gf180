@@ -1,0 +1,18 @@
+{
+ "cells": 175,
+ "signal_nets": 165,
+ "row_length_um": 474.0,
+ "tap_pairs": 27,
+ "rules_checked": 54,
+ "rules_violated": 0,
+ "bbox_um": [
+  474.0,
+  123.8
+ ],
+ "kinds": {
+  "INV": 94,
+  "NAND2": 37,
+  "NOR2": 16,
+  "TG": 28
+ }
+}

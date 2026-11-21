@@ -6,7 +6,7 @@ Course project for EEE F376 (Design Project), BITS Pilani, K K Birla Goa Campus,
 
 **Status**
 - Digital: complete and verified in simulation (RTL, gate-level cross-check, post-synthesis) and by formal proof.
-- Analog: complete in simulation (typical, corners, mismatch, dynamic test, MIM capacitors, input-noise sweep, comparator-offset Monte Carlo per corner). The main flow uses open-source GF180MCU models in ngspice; a Cadence Spectre port on the gpdk180 kit reruns the same tests and is reported separately, labelled gpdk180. Layout: started (inverter, NAND2, NOR2, transmission gate and capacitor array drawn, checked as described below); the converter as a whole is not laid out and no parasitics were extracted (see [Not verified](#not-verified)).
+- Analog: complete in simulation (typical, corners, mismatch, dynamic test, MIM capacitors, input-noise sweep, comparator-offset Monte Carlo per corner). The main flow uses open-source GF180MCU models in ngspice; a Cadence Spectre port on the gpdk180 kit reruns the same tests and is reported separately, labelled gpdk180. Layout: the digital core (175 cells) is laid out and LVS-matched, plus the capacitor array and sampling switch; comparator, DAC switches and top-level wiring are not laid out and no parasitics were extracted (see [Not verified](#not-verified)).
 - FPGA: Vivado script and constraints are provided but **have not been run**.
 
 ## How it works
@@ -31,7 +31,7 @@ Charge-redistribution decision: `Vin * Ctot > Vref * sum(b_i C_i)`. The top-plat
 | `rtl/sar_gates.v` | Gate-level mirror of the transistor-level logic in `spice/cells.sp`, used for cross-checking |
 | `rtl/fpga_top.v`, `fpga/` | Basys 3 top level, constraints, batch Vivado script (`build.tcl`, not run) |
 | `tb/` | Self-checking testbenches |
-| `layout/` | Layout flow on the foundry device generators: inverter, NAND2, NOR2, transmission gate, capacitor array, rule subset, LVS (work in progress) |
+| `layout/` | Layout flow on the foundry device generators: 175-cell digital core, standard cells, capacitor array, rule subset, LVS (work in progress) |
 | `formal/` | SymbiYosys proofs of the controller (`make formal`) |
 | `spice/` | Transistor-level netlists: `cells.sp` (gates, DFF, FSM logic), `adc_130b.sp` (complete converter), FSM variants, generators |
 | `scripts/` | Run, Monte Carlo and analysis scripts (ngspice / GF180MCU) |
@@ -120,20 +120,24 @@ The simulations above test chosen stimuli. The proofs in `formal/` (SymbiYosys, 
 
 The checks were mutation-tested: inverting the comparator polarity or skipping a state makes them fail. They do not cover the stale-register and unused-state differences between the RTL and the gates, which only appear after a mid-run reset or an injected illegal state and are described above.
 
-### Layout (started: five blocks)
+### Layout (digital core complete; analog blocks partly)
 
-`layout/` holds a Python layout flow built on the foundry's own GF180MCU device generators (NMOS, PMOS and MIM capacitor), run through the standalone `klayout` Python module. Drawn so far: the inverter `INV` (`inverter.py`, picture in `layout/inverter_layout.png`), `NAND2` and `NOR2` (`gates.py`, two-finger devices with shared diffusion and a Metal2 output jog), the sampling transmission gate `TGW` (`tgate.py`, W = 8 um, x link on Metal2) and the capacitor array (`caparray.py`, picture in `layout/caparray_layout.png`). Logic cells use W = 2 um and L = 0.28 um as in `spice/cells.sp`; each has gate contacts, rails or taps, and the GDS files are in `layout/`.
+`layout/` holds a Python layout flow built on the foundry's own GF180MCU device generators (NMOS, PMOS and MIM capacitor), run through the standalone `klayout` Python module.
+
+**Digital core (`router.py`, `stdcells.py`, `spicenet.py`).** The 175 logic cells of the converter (94 inverters, 37 NAND2, 16 NOR2, 28 transmission gates: the FSM, output decoder, SAR register, flip-flops and latch buffers, flattened from `spice/adc_130b.sp` and `spice/cells.sp`) are placed in one row with continuous rails, n-well, implant bands and a tap pair every 16 um, and wired on Metal3 / Metal4 (one Metal4 track per net, 165 signal nets). The layout is 474 x 124 um (`layout/digcore_layout.png`, `layout/digcore_zoom.png`; numbers in `results/layout_digital_core.json`).
+
+**Other blocks.** The inverter, NAND2, NOR2 and the 8 um sampling transmission gate `TGW` (`inverter.py`, `gates.py`, `tgate.py`) and the capacitor array (`caparray.py`, picture in `layout/caparray_layout.png`).
 
 | Check | Result |
 |---|---|
-| Rule subset (`drc_lite.py`, 40 rules for COMP, poly, implants, n-well, contacts, Metal1, via1 and Metal2, with values from the GF180MCU Design Manual section 7) | 0 violations in INV, NAND2, NOR2 and TGW |
-| Layout versus schematic (`lvs_lite.py`, KLayout netlist extraction and comparison, pins checked at their Metal shapes) | match in INV, NAND2, NOR2 and TGW |
-| Deliberate defects (cut output strap, via or bridge, missing gate contact, missing supply strap or tap contact) | each one is caught (18 tried on the transistor cells) |
-| Capacitor array (`caparray.py`): 16 identical 3.31 um unit capacitors, bits grouped by row and joined with Metal3, one shared Metal4 top net | bottom nets of 8 / 4 / 2 / 1 / 1 units, a single top net, Metal3 and Metal4 width and space >= 0.28 um (checked) |
+| Rule subset (`drc_lite.py`, 54 rules for COMP, poly, implants, n-well, contacts and Metal1 to Metal4 with via1 to via3, values from the GF180MCU Design Manual section 7) | 0 violations in the digital core and in INV, NAND2, NOR2 and TGW |
+| Layout versus schematic (`lvs_lite.py`, KLayout netlist extraction; every net's pin location is probed and its device-terminal count compared, then the whole netlist is compared) | the digital core matches the flattened simulation netlist (456 transistors, 165 signal nets plus rails); INV, NAND2, NOR2 and TGW match their schematics |
+| Deliberate defects | caught: open via, open source contact, cut rail strap, missing well or substrate taps, a Metal4 short between two nets, and 18 more on the single cells |
+| Capacitor array (`caparray.py`): 16 identical 3.31 um unit capacitors, bits grouped by row and joined with Metal3, one shared Metal4 top net | bottom nets of 8 / 4 / 2 / 1 / 1 units, a single top net, Metal3 and Metal4 width and space >= 0.28 um |
 
-Why unit cells: the PDK capacitor model is not proportional to area (a 3.31 um square is 24.96 fF, and larger single shapes give less per unit area, `results/layout_cap_shapes.json`). Drawing the 2x, 4x and 8x capacitors as single rectangles would put their ratios 3 to 8 % low, worth up to 0.27 LSB of DNL at the 7 to 8 transition, while an array of identical units keeps the ratios exact in the model (total 399.3 fF, the 400 fF used in the simulations).
+Why unit cells in the array: the PDK capacitor model is not proportional to area (a 3.31 um square is 24.96 fF, and larger single shapes give less per unit area, `results/layout_cap_shapes.json`). Drawing the 2x, 4x and 8x capacitors as single rectangles would put their ratios 3 to 8 % low, worth up to 0.27 LSB of DNL at the 7 to 8 transition, while identical units keep the ratios exact in the model (total 399.3 fF).
 
-Limits: this is **not** the foundry signoff deck (that needs KLayout's Ruby engine), only the rules listed in `drc_lite.py`; the capacitor array is checked for structure and metal spacing only (the MIM geometry itself comes from the foundry generator), has no dummy ring, and its row grouping is not a common-centroid arrangement. Not laid out yet: AND/OR gates, flip-flop, comparator and the top-level routing. No parasitics were extracted or simulated (no open extractor was available in this setup). Run it with `make layout` (needs `pip install klayout` and the PDK checkout).
+Limits: this is **not** the foundry signoff deck (that needs KLayout's Ruby engine), only the rules listed in `drc_lite.py`; the capacitor array is checked for structure and metal spacing only (no dummy ring, not common-centroid) and the MIM geometry itself comes from the foundry generator. The digital core is a single long row with generous routing, not an area-optimised block. Not laid out yet: the StrongARM comparator, the DAC switches, and the top-level wiring that joins the capacitor array, comparator, switches and the digital core. No parasitics were extracted or simulated (no open extractor was available in this setup). Run it with `make layout`.
 
 ### Extra verification: GF180MCU, ngspice 36
 
@@ -226,7 +230,7 @@ Set `GF180_MODELS` to use a PDK checkout in another location. The 128-step ramp 
 
 ## Not verified
 
-- **Layout and parasitics.** Only the inverter, NAND2, NOR2, transmission gate and capacitor array are laid out (see Layout above). The converter as a whole has no layout, signoff DRC, LVS or parasitic extraction; the only parasitic simulated is a 20 fF top-plate capacitor.
+- **Layout and parasitics.** The digital core, transmission gate and capacitor array are laid out (see Layout above); the comparator, DAC switches and top-level wiring are not. The converter as a whole has no layout, signoff DRC, LVS or parasitic extraction; the only parasitic simulated is a 20 fF top-plate capacitor.
 - **Cadence design flow.** The original Virtuoso schematic and the course PDK setup were not used. Cadence Spectre was run only on the netlists ported to the gpdk180 kit (section above; gpdk180 numbers, not GF180). Circuit parameters of that port (1.8 V supply, 0.18 um length) are not the original design's.
 - **MIM capacitors.** Simulated with the PDK MIM models: typical corner (both PDK revisions) and the ss / 125 C and ff / -40 C corners (newer PDK revision with ngspice 42 only, because the older revision aborts). The 256-step MIM ramp and the Spectre MIM runs use one model each. The GF180 PDK has no per-instance MIM mismatch (only a global skew); the converter-level mismatch runs use ideal capacitors, so capacitor mismatch is only covered by the behavioural Monte Carlo.
 - **Noise.** Only an injected white-noise source at the input was swept (0.1 to 20 mV rms, one realisation per level). Device thermal / flicker noise, kT/C sampling noise (calculated only) and clock jitter were not simulated.

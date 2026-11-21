@@ -6,3 +6,4 @@ spice/*.txt
 spice/*.raw
 __pycache__/
 formal/*/
+layout/digcore_*.gds
