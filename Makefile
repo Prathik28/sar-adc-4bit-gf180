@@ -1,7 +1,7 @@
 # Digital verification of the SAR ADC controller (needs Icarus Verilog; Yosys and Verilator optional)
 SIM  = build
 RTL  = rtl/sar_ctrl.v
-.PHONY: all digital sim_4bit sim_nbit equiv lint synth post_synth clean
+.PHONY: formal all digital sim_4bit sim_nbit equiv lint synth post_synth clean
 all: digital
 
 digital: sim_4bit sim_nbit equiv lint synth post_synth
@@ -34,3 +34,6 @@ post_synth: synth           ## re-run the 4-bit test on the synthesised netlist
 
 clean:
 	rm -rf $(SIM) tb_sar.vcd
+
+formal:                     ## SymbiYosys proofs (needs sby, yosys, z3)
+	for t in ctrl adc equiv; do sby -f formal/$$t.sby; done

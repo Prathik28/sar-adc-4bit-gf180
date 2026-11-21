@@ -1,0 +1,22 @@
+[tasks]
+bmc
+prove
+
+[options]
+bmc: mode bmc
+bmc: depth 40
+prove: mode prove
+prove: depth 40
+multiclock off
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -D FORMAL equiv.sv sar_ctrl.v sar_gates.v
+prep -top equiv
+
+[files]
+formal/equiv.sv
+rtl/sar_ctrl.v
+rtl/sar_gates.v

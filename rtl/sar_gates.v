@@ -36,4 +36,8 @@ module sar_gates (
         q0 <= d0; q1 <= d1; q2 <= d2;
         r  <= dr;
     end
+
+`ifdef FORMAL
+    initial begin q0 = 1'b0; q1 = 1'b0; q2 = 1'b0; r = 4'b0; end
+`endif
 endmodule

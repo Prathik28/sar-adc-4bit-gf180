@@ -5,7 +5,7 @@ A 4-bit successive-approximation ADC built from the bottom up: a transistor-leve
 Course project for EEE F376 (Design Project), BITS Pilani, K K Birla Goa Campus, supervised by Ria Rashid. The original Cadence design is not in this repository; everything here runs with open-source tools.
 
 **Status**
-- Digital: complete and verified in simulation (RTL, gate-level cross-check, post-synthesis).
+- Digital: complete and verified in simulation (RTL, gate-level cross-check, post-synthesis) and by formal proof.
 - Analog: complete in simulation (typical, corners, mismatch, dynamic test). Not done: layout and Cadence gpdk180 reruns (see [Not verified](#not-verified)).
 - FPGA: Vivado script and constraints are provided but **have not been run**.
 
@@ -31,6 +31,7 @@ Charge-redistribution decision: `Vin * Ctot > Vref * sum(b_i C_i)`. The top-plat
 | `rtl/sar_gates.v` | Gate-level mirror of the transistor-level logic in `spice/cells.sp`, used for cross-checking |
 | `rtl/fpga_top.v`, `fpga/` | Basys 3 top level, constraints, batch Vivado script (`build.tcl`, not run) |
 | `tb/` | Self-checking testbenches |
+| `formal/` | SymbiYosys proofs of the controller (`make formal`) |
 | `spice/` | Transistor-level netlists: `cells.sp` (gates, DFF, FSM logic), `adc_130b.sp` (complete converter), FSM variants, generators |
 | `scripts/` | Run, Monte Carlo and analysis scripts |
 | `results/` | All numbers and plots quoted below (JSON, Markdown, PNG) |
@@ -102,6 +103,18 @@ No corner loses a code or becomes non-monotonic. A "step with code error" means 
 
 At 4 bits, capacitor matching is not the limiting error; comparator offset and the gain drift above matter more.
 
+### Formal proof of the controller
+
+The simulations above test chosen stimuli. The proofs in `formal/` (SymbiYosys, Z3 and ABC PDR) cover every input sequence. Each runs as bounded model checking to depth 40 and as an unbounded proof:
+
+| Check | What is proven | Result |
+|---|---|---|
+| `ctrl` | Only states S0..S5 are reachable (110 and 111 never occur); `sample` and `eoc` are never high together; exactly one SET line at a time; state steps S0 to S5 and back to S0 on each clock enable; reset clears the state and registers; at S5 the register holds exactly the four comparator decisions; `dout` changes only when the end-of-conversion state is clocked | proven |
+| `adc` | With an ideal comparator and DAC, for any constant 4-bit input and free reset and clock enable, `dout` equals the input code after every completed conversion | proven (all 16 codes) |
+| `equiv` | The RTL controller and the gate-level mirror of the transistor-level logic have identical `sample`, `eoc` and `dac` outputs for any comparator sequence after power-on | proven |
+
+The checks were mutation-tested: inverting the comparator polarity or skipping a state makes them fail. They do not cover the stale-register and unused-state differences between the RTL and the gates, which only appear after a mid-run reset or an injected illegal state and are described above.
+
 ## Reproduce
 
 ```bash
@@ -122,6 +135,8 @@ python scripts/dff_timing.py                         # setup / hold / clock-to-Q
 python scripts/mc_cap_dac.py 5000                    # capacitor mismatch (behavioural)
 python scripts/analyze.py pvt && python scripts/analyze.py enob && python scripts/analyze.py fine && python scripts/analyze.py plots
 ```
+
+For the formal proofs, install SymbiYosys with Z3 and run `make formal`.
 
 Set `GF180_MODELS` to use a PDK checkout in another location. The 128-step ramp (`spice/adc_rampb.sp`) takes 10 to 15 minutes.
 

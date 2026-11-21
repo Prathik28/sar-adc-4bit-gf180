@@ -48,4 +48,41 @@ module sar_ctrl (
             if (eoc)      dout <= r;                            // output register
         end
     end
+
+`ifdef FORMAL
+    // ---- formal properties (ignored by synthesis and simulation) ----
+    // power-on state is the reset state; inputs rst, ce and comp stay completely free
+    initial begin state = S0; r = 4'b0; dout = 4'b0; end
+    reg f_past = 1'b0;
+    always @(posedge clk) f_past <= 1'b1;
+    reg [3:0] f_c;                       // comparator decision captured in S1..S4
+    always @(posedge clk) if (!rst && ce) begin
+        if (state == S1) f_c[3] <= comp;
+        if (state == S2) f_c[2] <= comp;
+        if (state == S3) f_c[1] <= comp;
+        if (state == S4) f_c[0] <= comp;
+    end
+    always @(*) begin
+        assert (state <= S5);                          // 110 and 111 are never reached
+        assert (!(sample && eoc));
+        assert (set == 4'b0000 || set == 4'b1000 || set == 4'b0100 || set == 4'b0010 || set == 4'b0001);
+        // invariants that make the proof inductive: bits decided so far are in r, the rest are still 0
+        if (state == S1) assert (r == 4'b0000);
+        if (state >= S2) assert (r[3] == f_c[3]);
+        if (state == S2) assert (r[2:0] == 3'b000);
+        if (state >= S3) assert (r[2] == f_c[2]);
+        if (state == S3) assert (r[1:0] == 2'b00);
+        if (state >= S4) assert (r[1] == f_c[1]);
+        if (state == S4) assert (r[0] == 1'b0);
+        if (state == S5) assert (r[0] == f_c[0]);
+        if (eoc) assert (r == f_c);                    // register holds exactly what the comparator decided
+    end
+    always @(posedge clk) if (f_past) begin
+        if ($past(rst))                assert (state == S0 && r == 4'b0 && dout == 4'b0);
+        if (!$past(rst) && !$past(ce)) assert (state == $past(state) && r == $past(r) && dout == $past(dout));
+        if (!$past(rst) && $past(ce))  assert (state == ($past(state) == S5 ? S0 : $past(state) + 3'd1));
+        if (!$past(rst) && $past(ce) && $past(eoc)) assert (dout == $past(r));
+        if (!$past(rst) && !($past(ce) && $past(eoc))) assert (dout == $past(dout));
+    end
+`endif
 endmodule

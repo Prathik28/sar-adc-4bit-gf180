@@ -1,0 +1,20 @@
+[tasks]
+bmc
+prove
+
+[options]
+bmc: mode bmc
+bmc: depth 40
+prove: mode prove
+prove: depth 40
+multiclock off
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal -D FORMAL sar_ctrl.v
+prep -top sar_ctrl
+
+[files]
+rtl/sar_ctrl.v
