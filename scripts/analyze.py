@@ -74,6 +74,25 @@ def do_mim():
     (RES / "pvt_ramp64_mim.json").write_text(json.dumps(rows, indent=1))
 
 
+def do_newpdk():
+    """MIM corner runs (and controls) on the newer GF180MCU models: build/spice_newpdk/runs (see run_newpdk.py)."""
+    jobs = [("mim_NN_27_2.0", 2.0), ("mim_ss_125_1.8", 1.8), ("mim_ff_m40_2.2", 2.2),
+            ("nomim_ss_125_1.8", 1.8), ("nomim_ff_m40_2.2", 2.2)]
+    rows = []
+    for name, vdd in jobs:
+        f = BUILD.parent / "spice_newpdk/runs" / f"{name}.txt"
+        try:
+            m, *_ = ramp_metrics(f, vdd, 64); rows.append({"run": name, "vdd": vdd, **m}); print(name, m)
+        except Exception as e:
+            rows.append({"run": name, "vdd": vdd, "status": "not completed (simulation aborted)"}); print(name, "not completed", repr(e)[:60])
+    (RES / "pvt_ramp64_mim_newpdk.json").write_text(json.dumps(rows, indent=1))
+    md = ["| run | VDD (V) | codes seen | monotonic | steps with code error | max code error (LSB) | max abs DNL (LSB) | max abs INL (LSB) |", "|---|---|---|---|---|---|---|---|"]
+    for r in rows:
+        if "status" in r: md.append(f"| {r['run']} | {r['vdd']} | {r['status']} | | | | | |"); continue
+        md.append(f"| {r['run']} | {r['vdd']} | {r['codes_seen']}/16 | {'yes' if r['monotonic'] else 'NO'} | {r['steps_with_code_error']} | {r['max_abs_code_error_lsb']} | {r['dnl_max_abs_lsb']:.3f} | {r['inl_max_abs_lsb']:.3f} |")
+    (RES / "pvt_ramp64_mim_newpdk.md").write_text("\n".join(md) + "\n"); print("\n".join(md))
+
+
 def do_noise():
     cycles, n = 13, 128
     rng = np.random.default_rng(1); k = np.arange(n); rows = []
@@ -178,4 +197,4 @@ def do_plots():
 
 
 if __name__ == "__main__":
-    {"mim": do_mim, "noise": do_noise, "mm": do_mm, "fine": do_fine, "ramp": do_ramp, "pvt": do_pvt, "enob": do_enob, "plots": do_plots}[sys.argv[1]]()
+    {"newpdk": do_newpdk, "mim": do_mim, "noise": do_noise, "mm": do_mm, "fine": do_fine, "ramp": do_ramp, "pvt": do_pvt, "enob": do_enob, "plots": do_plots}[sys.argv[1]]()
