@@ -108,15 +108,17 @@ At 4 bits, capacitor matching is not the limiting error; comparator offset and t
 
 ### Extra verification: GF180MCU, ngspice 36
 
-Run on a lab PC with ngspice 36 (Ubuntu package) and the GF180MCU models from the open PDK repository (commit 9f992d5, 2023-05-31); the rows above were produced with ngspice 47, so the two sets are not bit-identical. 3.3 V devices at VDD = 2 V, typical corner and 27 C unless stated.
+Run on a lab PC with ngspice 36 (Ubuntu package) and the GF180MCU models from the open PDK repository (commit 9f992d5, 2023-05-31); the rows above were produced with ngspice 47, so the two sets are not bit-identical. Exception: the two MIM corner rows use a newer PDK revision and ngspice 42 (explained below the table). 3.3 V devices at VDD = 2 V, typical corner and 27 C unless stated.
 
 | Experiment | Result |
 |---|---|
 | MIM capacitors (PDK `mim_2p0fF`, 3.31 um unit cell = 25 fF), 256-step ramp | 16/16 codes, monotonic, max abs DNL 0.125 LSB, max abs INL 0.125 LSB, best-fit INL 0.108 LSB: same as ideal capacitors |
-| MIM capacitors, ss / 125 C / 1.8 V and ff / -40 C / 2.2 V, 64-step ramp | **not completed**: ngspice aborts ("timestep too small" below 1 ps, at the `ec_cap` node of the PDK's MIM subcircuit) in both ngspice 36 and ngspice 42, so there is no number. 300 ns test runs abort in the same way for the ss corner at 27 C and for typical at 125 C, while typical / 27 C / 1.8 V runs, so the MIM model of the PDK revision used here (commit 9f992d5) is numerically unstable away from the nominal point in this netlist (cause not investigated further; a newer PDK revision was not tried) |
+| MIM capacitors, ss / 125 C / 1.8 V and ff / -40 C / 2.2 V, 64-step ramp (**newer PDK revision, ngspice 42**, see below) | ss: 16/16 codes, monotonic, 2 steps with a 1 LSB code error; ff: 16/16 codes, monotonic, 2 steps with a 1 LSB code error; max abs DNL and INL 0.25 LSB (the step size) in both. Without MIM on the same models: 3 and 2 steps, matching the PVT table above |
 | Input-referred white noise 0.1 / 0.5 / 2 / 5 / 10 / 20 mV rms, sine test | ENOB 3.97 / 3.97 / 3.97 / 3.96 / 3.97 / 3.91 (SNDR 25.65 / 25.65 / 25.65 / 25.61 / 25.67 / 25.29 dB); an ideal 4-bit quantiser with the same noise gives 4.03 ... 3.87. One noise realisation per level, so differences below about 0.1 dB are not significant |
 | Comparator offset Monte Carlo, 100 seeds per corner | ff: sigma 7.7 mV, mean 0.1, range -20.5 to +17.5; ss: 7.3 mV, 0.2, -18.5 to +16.5; fs: 7.7 mV, 0.1, -20.5 to +17.5; sf: 7.4 mV, 0.1, -18.5 to +16.5 (typical, 200 seeds: 7.2 mV; LSB/2 = 62.5 mV) |
 | Whole-converter threshold-voltage mismatch, 64-step ramp, 4 typical + 3 ss + 3 ff seeds | all 10 runs: 16/16 codes, monotonic, at most 8 steps with a 1 LSB code error (0.25 LSB per step) |
+
+**Why two models and two simulators.** The PDK revision used for every other row here (commit 9f992d5, 2023, archived repository) has a MIM model that makes ngspice abort ("timestep too small" below 1 ps, at the `ec_cap` node) in both ngspice 36 and ngspice 42 whenever the corner or temperature is not the nominal one: the two MIM corner runs, and short tests of ss at 27 C and typical at 125 C, all failed. The two corner rows above therefore come from the newer, maintained revision (`fossi-foundation/globalfoundries-pdk-libs-gf180mcu_fd_pr`, commit ad8d90a, 2026-11-17) run with ngspice 42, which that revision needs (it uses BSIM4 parameters that ngspice 36 rejects). That revision renames the devices (`nfet_03v3`, `pfet_03v3`) and restructures the MIM model, so `adc_gen.py --pdk-rev new` and `scripts/run_newpdk.py` map the netlists. As a check that the two revisions agree, five runs were made on the newer one: typical / 27 C / 2.0 V with MIM (1 step with a 1 LSB error; the older-model PVT row without MIM also has 1), the two corners with MIM (above) and the same two corners without MIM (3 and 2 steps, identical to the older-model PVT rows). Details: [`results/pvt_ramp64_mim_newpdk.md`](results/pvt_ramp64_mim_newpdk.md). The 256-step MIM ramp and every other row were not rerun on the newer revision.
 
 The kT/C noise of the 400 fF array is about 0.10 mV rms (calculated, not simulated), far below 1/16 LSB. The PDK has no per-instance MIM-capacitor mismatch (only a global skew), so capacitor mismatch is still covered only by the behavioural model above.
 
@@ -179,6 +181,10 @@ python scripts/run_batch.py extra -j 6               # MIM caps, noise sweep, co
 for c in ff ss fs sf; do python scripts/mc_comparator.py 100 -j 4 --corner $c; done
 python scripts/analyze.py mim; python scripts/analyze.py noise; python scripts/analyze.py mm
 
+# MIM corner runs on the newer PDK revision (needs ngspice >= 42)
+git clone --depth 1 https://github.com/fossi-foundation/globalfoundries-pdk-libs-gf180mcu_fd_pr ../tools/gf180_new
+python scripts/run_newpdk.py ../tools/gf180_new/models/ngspice -j 5 && python scripts/analyze.py newpdk
+
 # Spectre / gpdk180 port (needs spectre on PATH and a license; GPDK180_MODELS = folder holding gpdk.scs)
 python scripts/spectre_run.py all -j 12              # PVT, ramp, sine, MIM, noise, converter mismatch
 for c in typical ff ss fs sf; do python scripts/spectre_mc_comparator.py 100 -j 12 --corner $c; done
@@ -191,10 +197,10 @@ Set `GF180_MODELS` to use a PDK checkout in another location. The 128-step ramp 
 
 - **Layout and parasitics.** No layout, DRC, LVS or extraction was done; the only parasitic is a 20 fF top-plate capacitor.
 - **Cadence design flow.** The original Virtuoso schematic and the course PDK setup were not used. Cadence Spectre was run only on the netlists ported to the gpdk180 kit (section above; gpdk180 numbers, not GF180). Circuit parameters of that port (1.8 V supply, 0.18 um length) are not the original design's.
-- **MIM capacitors.** Simulated with the PDK MIM models (typical corner, both tools), but the two GF180 corner runs (ss / 125 C and ff / -40 C) did **not complete** (ngspice 36 and 42 both abort on the MIM model), and the GF180 PDK has no per-instance MIM mismatch (only a global skew); the converter-level mismatch runs use ideal capacitors, so capacitor mismatch is only covered by the behavioural Monte Carlo.
+- **MIM capacitors.** Simulated with the PDK MIM models: typical corner (both PDK revisions) and the ss / 125 C and ff / -40 C corners (newer PDK revision with ngspice 42 only, because the older revision aborts). The 256-step MIM ramp and the Spectre MIM runs use one model each. The GF180 PDK has no per-instance MIM mismatch (only a global skew); the converter-level mismatch runs use ideal capacitors, so capacitor mismatch is only covered by the behavioural Monte Carlo.
 - **Noise.** Only an injected white-noise source at the input was swept (0.1 to 20 mV rms, one realisation per level). Device thermal / flicker noise, kT/C sampling noise (calculated only) and clock jitter were not simulated.
 - **Mismatch.** Threshold-voltage mismatch only, as modelled in each PDK. GF180: converter-level runs at typical, ss and ff (10 seeds) and comparator Monte Carlo at five corners; gpdk180: converter-level at typical (4 seeds) and comparator Monte Carlo at five corners, where the ff / ss / fs / sf cases are the typical mismatch statistics around shifted process centres. Mismatch was not combined with the full temperature / supply sweep.
-- **Tool versions.** The extra GF180 numbers come from ngspice 36, the older rows from ngspice 47; the Spectre numbers from Spectre 25.1.
+- **Tool and PDK versions.** The extra GF180 numbers come from ngspice 36 with PDK commit 9f992d5, except the two MIM corner rows (ngspice 42, PDK commit ad8d90a); the older rows from ngspice 47; the Spectre numbers from Spectre 25.1. Other results were not rerun on the newer PDK revision, so the two revisions are compared only by the five checks listed above.
 - **Vivado and hardware.** `fpga/build.tcl` and the R-2R / LM393 bench setup are untested. The Yosys utilisation numbers above are the only FPGA evidence.
 - **Decoder glitch.** The glitch is characterised (see the digital section) but not fixed in the converter netlist; the re-timed EOC variant was only simulated on its own.
 
