@@ -1,0 +1,67 @@
+[
+ {
+  "run": "mim_NN_27_2.0",
+  "vdd": 2.0,
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 1,
+  "max_abs_code_error_lsb": 1,
+  "dnl_max_abs_lsb": 0.25,
+  "inl_max_abs_lsb": 0.25,
+  "estimate_resolution_lsb": 0.25
+ },
+ {
+  "run": "mim_ss_125_1.8",
+  "vdd": 1.8,
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 2,
+  "max_abs_code_error_lsb": 1,
+  "dnl_max_abs_lsb": 0.2499955555555542,
+  "inl_max_abs_lsb": 0.2499999999999996,
+  "estimate_resolution_lsb": 0.25
+ },
+ {
+  "run": "mim_ff_m40_2.2",
+  "vdd": 2.2,
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 2,
+  "max_abs_code_error_lsb": 1,
+  "dnl_max_abs_lsb": 0.25000000000000067,
+  "inl_max_abs_lsb": 0.2500036363636364,
+  "estimate_resolution_lsb": 0.25
+ },
+ {
+  "run": "nomim_ss_125_1.8",
+  "vdd": 1.8,
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 3,
+  "max_abs_code_error_lsb": 1,
+  "dnl_max_abs_lsb": 0.24999555555555808,
+  "inl_max_abs_lsb": 0.2499999999999996,
+  "estimate_resolution_lsb": 0.25
+ },
+ {
+  "run": "nomim_ff_m40_2.2",
+  "vdd": 2.2,
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 2,
+  "max_abs_code_error_lsb": 1,
+  "dnl_max_abs_lsb": 0.25000000000000067,
+  "inl_max_abs_lsb": 0.2500036363636364,
+  "estimate_resolution_lsb": 0.25
+ }
+]

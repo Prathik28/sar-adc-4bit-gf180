@@ -1,0 +1,26 @@
+[
+ {
+  "run": "mim_ss_125_1.62",
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 0,
+  "max_abs_code_error_lsb": 0,
+  "dnl_max_abs_lsb": 2.335668742858843e-07,
+  "inl_max_abs_lsb": 3.112804820488619e-07,
+  "estimate_resolution_lsb": 0.25
+ },
+ {
+  "run": "mim_ff_m40_1.98",
+  "conversions": 64,
+  "expected_steps": 64,
+  "codes_seen": 16,
+  "monotonic": true,
+  "steps_with_code_error": 3,
+  "max_abs_code_error_lsb": 1,
+  "dnl_max_abs_lsb": 0.25000037158954425,
+  "inl_max_abs_lsb": 0.25000124614169716,
+  "estimate_resolution_lsb": 0.25
+ }
+]
