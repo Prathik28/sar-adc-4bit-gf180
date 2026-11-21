@@ -5,11 +5,14 @@ contacts and Metal1. Reference netlists are built from the same device sizes as 
 import klayout.db as db
 
 
-def extract(ly, cell):
+def extract(ly, cell, sub_boxes=None):
+    """sub_boxes: list of db.Box (dbu) giving separate substrate regions, e.g. one per block, so that ground must be
+    connected through metal between blocks; default is one region for the whole cell"""
     l2n = db.LayoutToNetlist(db.RecursiveShapeIterator(ly, cell, []))
-    mk = lambda l, d: l2n.make_layer(ly.layer(l, d))
+    mk = lambda l, d: l2n.make_layer(ly.layer(l, d), f"L{l}_{d}")
     nwell, comp, poly, pplus, nplus, co, m1 = mk(21, 0), mk(22, 0), mk(30, 0), mk(31, 0), mk(32, 0), mk(33, 0), mk(34, 0)
     v1, m2, v2, m3, v3, m4 = mk(35, 0), mk(36, 0), mk(38, 0), mk(42, 0), mk(40, 0), mk(46, 0)
+    v3 = v3 - mk(75, 0)          # via3 inside a MIM top plate (fusetop) lands on the plate, not on the Metal3 bottom plate
     ngate = poly & (comp & nplus)
     pgate = poly & (comp & pplus)
     nsd = (comp & nplus) - poly
@@ -19,7 +22,8 @@ def extract(ly, cell):
     nmos_sd = nsd - nwell
     pmos_sd = psd & nwell
     sub = l2n.make_layer("sub")
-    sub.insert(db.Region(cell.bbox()) - nwell)
+    boxes = sub_boxes if sub_boxes else [cell.bbox()]
+    sub.insert(db.Region(boxes) - nwell)
     # devices
     l2n.extract_devices(db.DeviceExtractorMOS4Transistor("NMOS"), {"SD": nmos_sd, "G": ngate, "W": sub, "P": poly})
     l2n.extract_devices(db.DeviceExtractorMOS4Transistor("PMOS"), {"SD": pmos_sd, "G": pgate, "W": nwell, "P": poly})
@@ -48,17 +52,19 @@ def schematic_inverter(w):
     return nl
 
 
-def compare(ly, cell, ref, circuit, pins):
+def compare(ly, cell, ref, circuit, pins, sub_boxes=None):
     """Extract `cell`, pin the nets found at the given Metal1 locations (um) to the reference
     nets of the same name (what text labels do in a signoff flow), and compare with `ref`."""
-    l2n, m1 = extract(ly, cell)
+    l2n, m1 = extract(ly, cell, sub_boxes)
     ext = l2n.netlist()
     print("  extracted netlist:\n" + "\n".join("   " + ln for ln in str(ext).splitlines()))
     cmp_ = db.NetlistComparer()
     cmp_.max_depth = 0
     ec, rc = ext.circuit_by_name(circuit), ref.circuit_by_name(circuit)
-    for name, (x, y) in pins.items():
-        net = l2n.probe_net(m1, db.DPoint(x, y))
+    for name, loc in pins.items():
+        x, y = loc[0], loc[1]
+        layer = l2n.layer_by_name(loc[2]) if len(loc) > 2 else m1          # loc[2]: layer name such as "L42_0" (Metal3)
+        net = l2n.probe_net(layer, db.DPoint(x, y))
         if net is None:
             print(f"  LVS: no Metal1 net at pin {name} ({x}, {y})")
             return False

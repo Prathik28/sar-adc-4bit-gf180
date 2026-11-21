@@ -7,3 +7,6 @@ spice/*.raw
 __pycache__/
 formal/*/
 layout/digcore_*.gds
+layout/digcore.gds
+layout/analog.gds
+layout/caprow.gds

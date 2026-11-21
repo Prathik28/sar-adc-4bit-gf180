@@ -13,7 +13,8 @@ import pdkcells as p
 import drc_lite, lvs_lite, stdcells
 
 U = 1000
-GAP_X = 0.45          # extra space between cells
+GAP_X_DIGITAL = 0.45  # extra space between cells
+GAP_X = GAP_X_DIGITAL
 TAP_EVERY = 16.0
 TRACK0 = 7.8
 TRACK_PITCH = 0.70
@@ -25,8 +26,7 @@ class Row:
         self.ly = db.Layout(); self.ly.dbu = 0.001
         self.top = self.ly.create_cell("DIGCORE")
         self.li = {k: self.ly.layer(*v) for k, v in LAYER.items()}
-        self.pc = {("n", 1): p.nmos(self.ly, w=stdcells.W, nf=1), ("n", 2): p.nmos(self.ly, w=stdcells.W, nf=2),
-                   ("p", 1): p.pmos(self.ly, w=stdcells.W, nf=1), ("p", 2): p.pmos(self.ly, w=stdcells.W, nf=2)}
+        self.pc = {}
         self.cursor = 0.0
         self.runs = []            # [x_start, x_end] of device runs between taps
         self.taps = []
@@ -54,8 +54,12 @@ class Row:
         ox = self.cursor - cell["x0"]
         for layer, x0, y0, x1, y1 in cell["boxes"]:
             self.box(layer, ox + x0, y0, ox + x1, y1)
-        for typ, dx, dy, nf in cell["devices"]:
-            self.top.insert(db.CellInstArray(self.pc[(typ, nf)].cell_index(), db.Trans(round((ox + dx) * U), round(dy * U))))
+        for dev in cell["devices"]:
+            typ, dx, dy, nf = dev[:4]
+            w = dev[4] if len(dev) > 4 else stdcells.W
+            if (typ, w, nf) not in self.pc:
+                self.pc[(typ, w, nf)] = (p.nmos if typ == "n" else p.pmos)(self.ly, w=w, nf=nf)
+            self.top.insert(db.CellInstArray(self.pc[(typ, w, nf)].cell_index(), db.Trans(round((ox + dx) * U), round(dy * U))))
         self.placed.append((path, kind, ox, cell))
         self.cursor = ox + cell["x1"] + GAP_X
 
@@ -81,7 +85,27 @@ def _stack(row, x, y, level):
     row.box("m3", x - 0.19, y - 0.19, x + 0.19, y + 0.19)
 
 
-def build(max_cells=None, verbose=True):
+def route(row, pins_of_net, skip=(), track0=TRACK0):
+    """one Metal4 track per net, Metal3 verticals from every pin, via stacks at the pins"""
+    sig = {n: ps for n, ps in pins_of_net.items() if n not in skip}
+    order = sorted(sig, key=lambda n: min(q["x"] for q in sig[n]))
+    tracks = {}
+    for k, n in enumerate(order):
+        y = track0 + TRACK_PITCH * k
+        tracks[n] = y
+        xs = [q["x"] for q in sig[n]]
+        for q in sig[n]:
+            _stack(row, q["x"], q["y"], q["level"])
+            row.box("m3", q["x"] - 0.14, q["y"], q["x"] + 0.14, y + 0.19)
+            row.box("m3", q["x"] - 0.19, y - 0.19, q["x"] + 0.19, y + 0.19)
+            row.box("via3", q["x"] - 0.13, y - 0.13, q["x"] + 0.13, y + 0.13)
+        row.box("m4", min(xs) - 0.19, y - 0.19, max(xs) + 0.19, y + 0.19)
+    return tracks
+
+
+def build(max_cells=None, verbose=True, rail_pins=False):
+    global GAP_X
+    GAP_X = GAP_X_DIGITAL                  # analog.build changes it; always start from the digital value
     leaves = __import__("spicenet").digital_core()
     if max_cells:
         leaves = leaves[:max_cells]
@@ -108,28 +132,22 @@ def build(max_cells=None, verbose=True):
             lname = swap.get(sname, sname) if kind in ("NAND2", "NOR2") else sname
             pin = cell["pins"][lname]; pr = cell["probe"][lname]
             pins_of_net[net].append(dict(x=ox + pin["x"], y=pin["y"], level=pin["level"], probe=(ox + pr[0], pr[1]), cell=path, pin=lname))
-    sig = {n: ps for n, ps in pins_of_net.items() if n not in ("vdd", "vss")}
-    order = sorted(sig, key=lambda n: min(q["x"] for q in sig[n]))
-    tracks = {}
-    for k, n in enumerate(order):
-        y = TRACK0 + TRACK_PITCH * k
-        tracks[n] = y
-        xs = [q["x"] for q in sig[n]]
-        for q in sig[n]:
-            _stack(row, q["x"], q["y"], q["level"])
-            row.box("m3", q["x"] - 0.14, q["y"], q["x"] + 0.14, y + 0.19)
-            row.box("m3", q["x"] - 0.19, y - 0.19, q["x"] + 0.19, y + 0.19)
-            row.box("via3", q["x"] - 0.13, y - 0.13, q["x"] + 0.13, y + 0.13)
-        row.box("m4", min(xs) - 0.19, y - 0.19, max(xs) + 0.19, y + 0.19)
+    if rail_pins:
+        tx, tv = row.taps[0] + 0.25, row.taps[1] + 0.25          # different columns, so the two Metal3 wires cannot cross
+        pins_of_net["vss"].append(dict(x=tx, y=-0.6, level="m1", probe=(tx, -0.6), cell="rail", pin="vss"))
+        pins_of_net["vdd"].append(dict(x=tv, y=stdcells.YTOP + 0.6, level="m1", probe=(tv, stdcells.YTOP + 0.6), cell="rail", pin="vdd"))
+        tracks = route(row, pins_of_net, skip=())
+    else:
+        tracks = route(row, pins_of_net, skip=("vdd", "vss"))
     row.top.flatten(True)
     info = dict(row=row, leaves=leaves, pins=pins_of_net, tracks=tracks)
     if verbose:
-        print(f"{len(leaves)} cells, {len(sig)} signal nets, row {row.x1 - row.x0:.0f} um long, "
+        print(f"{len(leaves)} cells, {len(tracks)} signal nets, row {row.x1 - row.x0:.0f} um long, "
               f"{len(row.taps)} tap pairs, tracks up to y = {max(tracks.values()):.1f} um")
     return info
 
 
-def reference(leaves):
+def ref_devices(leaves):
     devs = []
     for path, kind, nets in leaves:
         if kind == "INV":
@@ -144,7 +162,11 @@ def reference(leaves):
         elif kind == "TG":
             x, y, en, enb = nets[:4]
             devs += [("N", x, y, en, 2.0), ("P", x, y, enb, 2.0)]
-    return lvs_lite.schematic("DIGCORE", devs, None)
+    return devs
+
+
+def reference(leaves):
+    return lvs_lite.schematic("DIGCORE", ref_devices(leaves), None)
 
 
 def check(info, do_drc=True):

@@ -1,0 +1,13 @@
+{
+ "top_size_um": [
+  642.5,
+  160.6
+ ],
+ "digital_cells": 175,
+ "analog_cells": 28,
+ "capacitors": 16,
+ "transistors": 490,
+ "nets_shared_between_blocks": 17,
+ "rules_checked": 54,
+ "rules_violated": 0
+}

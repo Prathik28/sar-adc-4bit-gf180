@@ -39,4 +39,4 @@ formal:                     ## SymbiYosys proofs (needs sby, yosys, z3)
 	for t in ctrl adc equiv; do sby -f formal/$$t.sby; done
 
 layout:                     ## layout cells: rule subset + LVS (needs the klayout Python module and the PDK checkout)
-	python layout/inverter.py && python layout/gates.py && python layout/tgate.py && python layout/caparray.py && python layout/router.py
+	python layout/inverter.py && python layout/gates.py && python layout/tgate.py && python layout/caparray.py && python layout/router.py && python layout/analog.py && python layout/caprow.py && python layout/top.py
