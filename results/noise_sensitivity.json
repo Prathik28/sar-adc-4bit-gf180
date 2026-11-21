@@ -1,0 +1,59 @@
+{
+ "kTC_rms_mV_for_400fF": 0.10178430593048222,
+ "rows": [
+  {
+   "noise_mV_rms": 0.1,
+   "noise_lsb_rms": 0.0008,
+   "SNDR_dB": 25.64697283649363,
+   "ENOB": 3.967935687125188,
+   "SFDR_dB": 34.60875378212158,
+   "ideal_quantiser_with_same_noise_SNDR_dB": 25.994367759666407,
+   "ideal_quantiser_ENOB": 4.025642484994419
+  },
+  {
+   "noise_mV_rms": 0.5,
+   "noise_lsb_rms": 0.004,
+   "SNDR_dB": 25.64697283649363,
+   "ENOB": 3.967935687125188,
+   "SFDR_dB": 34.60875378212158,
+   "ideal_quantiser_with_same_noise_SNDR_dB": 26.000237349668716,
+   "ideal_quantiser_ENOB": 4.026617499944969
+  },
+  {
+   "noise_mV_rms": 2,
+   "noise_lsb_rms": 0.016,
+   "SNDR_dB": 25.64697283649363,
+   "ENOB": 3.967935687125188,
+   "SFDR_dB": 34.60875378212158,
+   "ideal_quantiser_with_same_noise_SNDR_dB": 25.982223925811862,
+   "ideal_quantiser_ENOB": 4.023625236845824
+  },
+  {
+   "noise_mV_rms": 5,
+   "noise_lsb_rms": 0.04,
+   "SNDR_dB": 25.60909476431352,
+   "ENOB": 3.961643648557063,
+   "SFDR_dB": 35.072198075304314,
+   "ideal_quantiser_with_same_noise_SNDR_dB": 25.925737201319826,
+   "ideal_quantiser_ENOB": 4.014242060019904
+  },
+  {
+   "noise_mV_rms": 10,
+   "noise_lsb_rms": 0.08,
+   "SNDR_dB": 25.67119882501354,
+   "ENOB": 3.9719599377098906,
+   "SFDR_dB": 34.6174816937761,
+   "ideal_quantiser_with_same_noise_SNDR_dB": 25.730922605177067,
+   "ideal_quantiser_ENOB": 3.9818808314247613
+  },
+  {
+   "noise_mV_rms": 20,
+   "noise_lsb_rms": 0.16,
+   "SNDR_dB": 25.29027067467684,
+   "ENOB": 3.9086828363250565,
+   "SFDR_dB": 34.162084261129124,
+   "ideal_quantiser_with_same_noise_SNDR_dB": 25.027821177329763,
+   "ideal_quantiser_ENOB": 3.865086574307269
+  }
+ ]
+}
