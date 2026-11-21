@@ -84,6 +84,9 @@ if a.mim:
         return "\n".join(f"XM{name}_{i} top {node} mim_2p0fF c_length={W} c_width={W}" for i in range(n))
     src = re.sub(r"^C(\d) top (b\d) \{(\d)\*cu\}$", cap, src, flags=re.M)
     src = re.sub(r"^CT top (bt) \{cu\}$", lambda m: cap(re.match(r"(T) top (bt) \{(1)\*cu\}", "T top bt {1*cu}")), src, flags=re.M)
+if a.mim:
+    # the PDK MIM model makes ngspice 36 abort at t ~ 0.2 ps ("timestep too small"); these solver options avoid it
+    src = src.replace(".options method=gear", ".options method=gear gmin=1e-10 cshunt=1e-18 itl4=100")
 if a.noise:
     src = src.replace(vin.split()[0] + " vin 0 ", "VIN vin_s 0 ", 1)
     src = src.replace("VIN vin_s 0 ", f"VN vin_n vin_s trnoise({a.noise * 1e-3:g} 0.937n 0 0 0 0 0)\nRSN vin_n vin 10\nVIN vin_s 0 ", 1)

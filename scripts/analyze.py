@@ -67,7 +67,10 @@ def do_mim():
     print("MIM caps, typical 27 C, 2 V, 256-step ramp"); do_fine("mimfine", "ramp256_typical_mim.json")
     rows = []
     for name, vdd in (("mim_ss_125_1.8", 1.8), ("mim_ff_m40_2.2", 2.2)):
-        m, *_ = ramp_metrics(BUILD / f"runs/{name}.txt", vdd, 64); rows.append({"run": name, **m}); print(name, m)
+        try:
+            m, *_ = ramp_metrics(BUILD / f"runs/{name}.txt", vdd, 64); rows.append({"run": name, **m}); print(name, m)
+        except Exception as e:   # the simulator aborted (timestep too small): record it, do not invent numbers
+            rows.append({"run": name, "status": "not completed (simulation aborted)"}); print(name, "not completed", repr(e)[:60])
     (RES / "pvt_ramp64_mim.json").write_text(json.dumps(rows, indent=1))
 
 
