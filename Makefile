@@ -1,7 +1,7 @@
 # Digital verification of the SAR ADC controller (needs Icarus Verilog; Yosys and Verilator optional)
 SIM  = build
 RTL  = rtl/sar_ctrl.v
-.PHONY: formal all digital sim_4bit sim_nbit equiv lint synth post_synth clean
+.PHONY: layout formal all digital sim_4bit sim_nbit equiv lint synth post_synth clean
 all: digital
 
 digital: sim_4bit sim_nbit equiv lint synth post_synth
@@ -37,3 +37,6 @@ clean:
 
 formal:                     ## SymbiYosys proofs (needs sby, yosys, z3)
 	for t in ctrl adc equiv; do sby -f formal/$$t.sby; done
+
+layout:                     ## layout cells: rule subset + LVS (needs the klayout Python module and the PDK checkout)
+	python layout/inverter.py && python layout/gates.py

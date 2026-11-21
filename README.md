@@ -31,7 +31,7 @@ Charge-redistribution decision: `Vin * Ctot > Vref * sum(b_i C_i)`. The top-plat
 | `rtl/sar_gates.v` | Gate-level mirror of the transistor-level logic in `spice/cells.sp`, used for cross-checking |
 | `rtl/fpga_top.v`, `fpga/` | Basys 3 top level, constraints, batch Vivado script (`build.tcl`, not run) |
 | `tb/` | Self-checking testbenches |
-| `layout/` | Layout flow on the foundry device generators: inverter, rule subset, LVS (work in progress) |
+| `layout/` | Layout flow on the foundry device generators: inverter, NAND2, NOR2, rule subset, LVS (work in progress) |
 | `formal/` | SymbiYosys proofs of the controller (`make formal`) |
 | `spice/` | Transistor-level netlists: `cells.sp` (gates, DFF, FSM logic), `adc_130b.sp` (complete converter), FSM variants, generators |
 | `scripts/` | Run, Monte Carlo and analysis scripts |
@@ -116,17 +116,17 @@ The simulations above test chosen stimuli. The proofs in `formal/` (SymbiYosys, 
 
 The checks were mutation-tested: inverting the comparator polarity or skipping a state makes them fail. They do not cover the stale-register and unused-state differences between the RTL and the gates, which only appear after a mid-run reset or an injected illegal state and are described above.
 
-### Layout (started: one cell)
+### Layout (started: three cells)
 
-`layout/` holds a Python layout flow built on the foundry's own GF180MCU device generators (NMOS, PMOS and MIM capacitor), run through the standalone `klayout` Python module. So far one cell is drawn, the inverter `INV` (W = 2 um, L = 0.28 um, as in `spice/cells.sp`), with its gate contact, rails, and substrate and well taps (`layout/inverter_layout.png`, `layout/inverter.gds`).
+`layout/` holds a Python layout flow built on the foundry's own GF180MCU device generators (NMOS, PMOS and MIM capacitor), run through the standalone `klayout` Python module. Three cells are drawn so far, all with W = 2 um and L = 0.28 um as in `spice/cells.sp`: the inverter `INV` (`inverter.py`, picture in `layout/inverter_layout.png`), `NAND2` and `NOR2` (`gates.py`, two-finger devices with shared diffusion and a Metal2 output jog). Each has its gate contacts, rails, and substrate and well taps; the GDS files are in `layout/`.
 
 | Check | Result |
 |---|---|
-| Rule subset (`drc_lite.py`, 33 rules for COMP, poly, implants, n-well, contacts and Metal1, with values from the GF180MCU Design Manual section 7) | 0 violations |
-| Layout versus schematic (`lvs_lite.py`, KLayout netlist extraction and comparison, pins checked at their Metal1 shapes) | match |
-| Deliberate defects (cut drain strap, missing gate contact, cut supply strap, missing well or substrate tap contact) | each one is caught |
+| Rule subset (`drc_lite.py`, 40 rules for COMP, poly, implants, n-well, contacts, Metal1, via1 and Metal2, with values from the GF180MCU Design Manual section 7) | 0 violations in all three cells |
+| Layout versus schematic (`lvs_lite.py`, KLayout netlist extraction and comparison, pins checked at their Metal1 shapes) | match in all three cells |
+| Deliberate defects (cut output strap or via, missing gate contact, missing supply strap or tap contact) | each one is caught (11 tried) |
 
-Limits: this is **not** the foundry signoff deck (that needs KLayout's Ruby engine), only the rules listed in `drc_lite.py`; the rest of the converter (other gates, flip-flop, capacitor array, comparator, routing) is not laid out yet, and no parasitics were extracted or simulated. Run it with `python layout/inverter.py` (needs `pip install klayout` and the PDK checkout).
+Limits: this is **not** the foundry signoff deck (that needs KLayout's Ruby engine), only the rules listed in `drc_lite.py`. Not laid out yet: the transmission gate, AND/OR gates, flip-flop, capacitor array, comparator and the top-level routing. No parasitics were extracted or simulated (no open extractor was available in this setup). Run it with `make layout` (needs `pip install klayout` and the PDK checkout).
 
 ## Reproduce
 
@@ -155,7 +155,7 @@ Set `GF180_MODELS` to use a PDK checkout in another location. The 128-step ramp 
 
 ## Not verified
 
-- **Layout and parasitics.** Only the inverter is laid out (see Layout above). The converter as a whole has no layout, signoff DRC, LVS or parasitic extraction; the only parasitic simulated is a 20 fF top-plate capacitor.
+- **Layout and parasitics.** Only the inverter, NAND2 and NOR2 are laid out (see Layout above). The converter as a whole has no layout, signoff DRC, LVS or parasitic extraction; the only parasitic simulated is a 20 fF top-plate capacitor.
 - **Cadence gpdk180.** The original course PDK was not available here; all numbers come from the open GF180MCU models.
 - **Capacitors are ideal** in the netlist, and the sine test uses a clean source (no clock jitter, no input noise).
 - **Mismatch covers threshold voltage only**, as modelled per device in the PDK (`delvto`); mismatch was not combined with the corner sweep.

@@ -9,7 +9,7 @@ Units: um.
 import klayout.db as db
 
 LAYERS = dict(nwell=(21, 0), comp=(22, 0), poly=(30, 0), pplus=(31, 0), nplus=(32, 0),
-              contact=(33, 0), m1=(34, 0))
+              contact=(33, 0), m1=(34, 0), via1=(35, 0), m2=(36, 0))
 UM = 1000  # database units per um
 
 
@@ -21,8 +21,8 @@ def _reg(ly, cell, key):
 
 def run(ly, cell):
     """Return a list of (rule, number of violations, Region of markers)."""
-    comp, poly, nplus, pplus, nwell, co, m1 = (_reg(ly, cell, k) for k in
-                                               "comp poly nplus pplus nwell contact m1".split())
+    comp, poly, nplus, pplus, nwell, co, m1, v1, m2 = (_reg(ly, cell, k) for k in
+                                                       "comp poly nplus pplus nwell contact m1 via1 m2".split())
     ncomp, pcomp = comp & nplus, comp & pplus
     gate = poly & comp
     out = []
@@ -91,6 +91,20 @@ def run(ly, cell):
     width("M1.1 Metal1 width >= 0.23", m1, 0.23)
     space("M1.2a Metal1 space >= 0.23", m1, 0.23)
     add("M1.3 Metal1 area >= 0.1444", small(m1, 0.1444))
+    # via1 and Metal2 (Vn.1 size 0.26, Vn.2a space 0.26, Mn.1 width 0.28, Mn.2a space 0.28, Mn.3 area 0.1444)
+    vside = round(0.26 * UM)
+    bad_v = db.Region()
+    for q in v1.each():
+        b = q.bbox()
+        if b.width() != vside or b.height() != vside:
+            bad_v.insert(q)
+    add("V1.1 via1 size == 0.26", bad_v)
+    space("V1.2a via1 space >= 0.26", v1, 0.26)
+    add("V1.3 Metal1 overlap of via1 >= 0.06", v1.sized(round(0.06 * UM)) - m1)
+    add("V1.4 Metal2 overlap of via1 >= 0.06", v1.sized(round(0.06 * UM)) - m2)
+    width("M2.1 Metal2 width >= 0.28", m2, 0.28)
+    space("M2.2a Metal2 space >= 0.28", m2, 0.28)
+    add("M2.3 Metal2 area >= 0.1444", small(m2, 0.1444))
     return out
 
 
