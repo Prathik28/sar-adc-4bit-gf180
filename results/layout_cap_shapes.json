@@ -1,0 +1,62 @@
+{
+ "unit_fF": 24.958519020727937,
+ "shapes": {
+  "1u (3.31x3.31)": {
+   "l": 3.31,
+   "w": 3.31,
+   "area_units": 1.0,
+   "C_fF": 24.959,
+   "C_over_unit": 1.0
+  },
+  "2u as 1x2": {
+   "l": 3.31,
+   "w": 6.62,
+   "area_units": 2.0,
+   "C_fF": 48.339,
+   "C_over_unit": 1.9368
+  },
+  "2u as 1.41x1.41 sq": {
+   "l": 4.681,
+   "w": 4.681,
+   "area_units": 2.0,
+   "C_fF": 48.068,
+   "C_over_unit": 1.9259
+  },
+  "4u as 2x2": {
+   "l": 6.62,
+   "w": 6.62,
+   "area_units": 4.0,
+   "C_fF": 93.523,
+   "C_over_unit": 3.7472
+  },
+  "8u as 2x4": {
+   "l": 6.62,
+   "w": 13.24,
+   "area_units": 8.0,
+   "C_fF": 183.892,
+   "C_over_unit": 7.3679
+  },
+  "8u as 2.83sq": {
+   "l": 9.362,
+   "w": 9.362,
+   "area_units": 8.0,
+   "C_fF": 183.346,
+   "C_over_unit": 7.346
+  },
+  "4u as 1x4": {
+   "l": 3.31,
+   "w": 13.24,
+   "area_units": 4.0,
+   "C_fF": 95.101,
+   "C_over_unit": 3.8104
+  },
+  "8u as 1x8": {
+   "l": 3.31,
+   "w": 26.48,
+   "area_units": 8.0,
+   "C_fF": 188.624,
+   "C_over_unit": 7.5575
+  }
+ },
+ "model": "mimcap_typical, ngspice, ac 1 MHz"
+}

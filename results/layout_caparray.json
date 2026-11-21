@@ -1,0 +1,46 @@
+{
+ "unit_cells": 16,
+ "checks": {
+  "bottom nets have 8/4/2/1/1 units": true,
+  "single top net": true,
+  "M3 width >= 0.28": true,
+  "M3 space >= 0.28": true,
+  "M4 width >= 0.28": true,
+  "M4 space >= 0.28": true
+ },
+ "bottom_nets_units": [
+  1,
+  1,
+  2,
+  4,
+  8
+ ],
+ "top_net_polygons": 1,
+ "capacitance_model_fF": {
+  "B0": {
+   "units": 1,
+   "C_fF": 24.96
+  },
+  "B1": {
+   "units": 2,
+   "C_fF": 49.92
+  },
+  "B2": {
+   "units": 4,
+   "C_fF": 99.84
+  },
+  "B3": {
+   "units": 8,
+   "C_fF": 199.67
+  },
+  "BT": {
+   "units": 1,
+   "C_fF": 24.96
+  }
+ },
+ "total_fF": 399.3,
+ "array_size_um": [
+  19.21,
+  19.21
+ ]
+}
