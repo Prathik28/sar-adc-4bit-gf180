@@ -1,0 +1,25 @@
+name: formal
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  formal:
+    # SymbiYosys proofs of the controller (bounded and unbounded)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up OSS CAD Suite
+        uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: '2026-11-09'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run the proofs
+        run: make formal
+
+      - name: Upload counterexample traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: formal-traces
+          path: formal/*/

@@ -1,0 +1,27 @@
+name: layout
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  layout:
+    # layout flow on the foundry device generators: rule subset and layout-versus-schematic for every block
+    runs-on: ubuntu-24.04
+    env:
+      GF180_PR: ${{ github.workspace }}/../gf180_pr
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install the klayout Python module
+        run: pip install klayout
+
+      - name: Get the GF180MCU device generators (open PDK, Apache-2.0)
+        run: |
+          git clone --depth 1 https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_pr.git "$GF180_PR"
+          git -C "$GF180_PR" log -1 --format='PDK commit %h %ad' --date=short
+
+      - name: Build and check every layout block
+        run: make layout

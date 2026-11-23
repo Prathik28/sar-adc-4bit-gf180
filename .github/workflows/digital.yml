@@ -1,0 +1,18 @@
+name: digital
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  digital:
+    # RTL, N-bit and gate-level simulations, lint, synthesis and post-synthesis check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up OSS CAD Suite
+        uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: '2026-11-09'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run the digital checks
+        run: make digital

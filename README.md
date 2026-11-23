@@ -1,6 +1,6 @@
 # 4-bit SAR ADC in 180 nm CMOS (GF180MCU): transistor-level design, RTL controller, verification
 
-[![ci](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/ci.yml/badge.svg)](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/ci.yml)
+[![digital](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/digital.yml/badge.svg)](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/digital.yml) [![formal](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/formal.yml/badge.svg)](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/formal.yml) [![layout](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/layout.yml/badge.svg)](https://github.com/Prathik28/sar-adc-4bit-gf180/actions/workflows/layout.yml)
 
 A 4-bit successive-approximation ADC built from the bottom up: a transistor-level control path (static CMOS gates, master-slave flip-flop, 3-bit FSM), a charge-redistribution capacitor DAC with bottom-plate sampling, and a StrongARM latch comparator, simulated in ngspice with the open GlobalFoundries GF180MCU models. The control logic also exists as verified Verilog that maps onto a Basys 3 FPGA for a bench prototype.
 
@@ -55,7 +55,7 @@ Charge-redistribution decision: `Vin * Ctot > Vref * sum(b_i C_i)`. The top-plat
 | Yosys, Artix-7: controller alone | 14 flip-flops, 15 LUTs |
 | Yosys, Artix-7: `fpga_top` (adds clock divider and synchroniser) | 26 flip-flops, 17 LUTs, 3 CARRY4 |
 
-Run everything with `make digital`. GitHub Actions (`.github/workflows/ci.yml`) runs `make digital`, `make formal` and `make layout` on every push; the long simulation runs (ngspice, Spectre) are not part of CI.
+Run everything with `make digital`. GitHub Actions (`.github/workflows/digital.yml`, `formal.yml`, `layout.yml`) runs `make digital`, `make formal` and `make layout` on every push, each with its own status badge; the long simulation runs (ngspice, Spectre) are not part of CI.
 
 **Finding.** The two implementations agree on every reachable state but recover differently from the unused state codes. The RTL sends 110 and 111 straight to S0; the transistor-level equations send 110 to S5 (EOC) and 111 to 100. Both are back in S0 within a few cycles.
 
